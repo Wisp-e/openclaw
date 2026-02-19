@@ -24,7 +24,8 @@ pnpm test                   # Run unit tests (vitest, parallelized)
 pnpm test:coverage          # Unit tests with V8 coverage
 pnpm test:watch             # Continuous test runner
 pnpm test:e2e               # Integration tests (vitest.e2e.config.ts)
-pnpm test:live              # Live API tests (sets OPENCLAW_LIVE_TEST=1 + CLAWDBOT_LIVE_TEST=1)
+CLAWDBOT_LIVE_TEST=1 pnpm test:live   # Live tests (OpenClaw keys only)
+LIVE=1 pnpm test:live                 # Live tests (includes provider live tests)
 pnpm test:docker:live-models          # Docker live model tests
 pnpm test:docker:live-gateway         # Docker live gateway tests
 pnpm test:docker:onboard              # Docker onboarding E2E
