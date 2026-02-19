@@ -15,7 +15,6 @@ OpenClaw is a personal AI assistant platform (TypeScript/Node.js) that connects 
 
 ```bash
 pnpm install                # Install dependencies (also: bun install)
-prek install                # Install pre-commit hooks (same checks as CI)
 pnpm build                  # Full build (tsdown + DTS + UI copy)
 pnpm check                  # Type-check (tsgo) + lint (oxlint) + format (oxfmt)
 pnpm lint:fix               # Auto-fix lint issues
@@ -25,8 +24,7 @@ pnpm test                   # Run unit tests (vitest, parallelized)
 pnpm test:coverage          # Unit tests with V8 coverage
 pnpm test:watch             # Continuous test runner
 pnpm test:e2e               # Integration tests (vitest.e2e.config.ts)
-CLAWDBOT_LIVE_TEST=1 pnpm test:live   # Live tests (OpenClaw keys only)
-LIVE=1 pnpm test:live                 # Live tests (includes provider live tests)
+pnpm test:live              # Live API tests (sets OPENCLAW_LIVE_TEST=1 + CLAWDBOT_LIVE_TEST=1)
 pnpm test:docker:live-models          # Docker live model tests
 pnpm test:docker:live-gateway         # Docker live gateway tests
 pnpm test:docker:onboard              # Docker onboarding E2E
@@ -47,7 +45,7 @@ Commit helper: `scripts/committer "<msg>" <file...>` (avoids manual git add/comm
 
 Dev profile isolation: `OPENCLAW_PROFILE=dev pnpm gateway:dev` uses `~/.openclaw-dev/` state dir and port 19001, keeping dev separate from production state.
 
-Prefer Bun for TypeScript execution (scripts, dev, tests): `bun <file.ts>` / `bunx <tool>`. Node remains supported for built output (`dist/*`) and production installs.
+For package lifecycle use pnpm; prefer Bun for direct TypeScript execution (scripts, one-off runs): `bun <file.ts>` / `bunx <tool>`. Node remains supported for built output (`dist/*`) and production installs.
 
 ## Architecture
 
@@ -146,7 +144,7 @@ When refactoring shared logic (routing, allowlists, pairing, onboarding), consid
 **PR review flow:**
 
 - **Review mode** (given a PR link): use `gh pr view`/`gh pr diff`; do **not** switch branches; do **not** change code. Before reviewing, run `git pull`; if local changes or unpushed commits exist, stop and alert user.
-- **Landing mode**: create integration branch from `main` → bring in PR commits (prefer rebase for linear history; merge when conflicts make it safer) → apply fixes → add changelog (+ thanks + PR #) → run full gate (`pnpm build && pnpm check && pnpm test`) → commit → merge back to `main` → `git switch main`. Always add PR author as co-contributor when squashing.
+- **Landing mode**: create integration branch from `main` → bring in PR commits (prefer rebase for linear history; merge when conflicts make it safer) → apply lint/format fixes + add changelog (+ thanks + PR #) → run full gate (`pnpm build && pnpm check && pnpm test`) → commit → merge back to `main` → `git switch main`. Always add PR author as co-contributor when squashing.
 - After merging: leave PR comment with what was done and SHA hashes
 - New contributor: add avatar to README "clawtributors" list via `bun scripts/update-clawtributors.ts`
 
