@@ -1,6 +1,9 @@
 import type { OpenClawConfig } from "../config/config.js";
 
-export const DEFAULT_PI_COMPACTION_RESERVE_TOKENS_FLOOR = 20_000;
+// Reserve ~25% of a typical 128k context window so compaction triggers at ~96k.
+// This gives enough headroom for large single-turn exchanges and prevents
+// the context from silently filling to 100% without any compaction.
+export const DEFAULT_PI_COMPACTION_RESERVE_TOKENS_FLOOR = 32_000;
 
 type PiSettingsManagerLike = {
   getCompactionReserveTokens: () => number;

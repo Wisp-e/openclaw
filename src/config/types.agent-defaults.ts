@@ -166,6 +166,13 @@ export type AgentDefaultsConfig = {
   memorySearch?: MemorySearchConfig;
   /** Default thinking level when no /think directive is present. */
   thinkingDefault?: "off" | "minimal" | "low" | "medium" | "high" | "xhigh";
+  /**
+   * Per-model thinking level overrides (keyed by "provider/model" or short model name).
+   * Checked before thinkingDefault. Example: `{ "openrouter/pony-alpha": "medium" }`.
+   */
+  thinkingOverrides?: Record<string, "off" | "minimal" | "low" | "medium" | "high" | "xhigh">;
+  /** Default reasoning display level when no /reasoning directive is present. */
+  reasoningDefault?: "off" | "on" | "stream";
   /** Default verbose level when no /verbose directive is present. */
   verboseDefault?: "off" | "on" | "full";
   /** Default elevated level when no /elevated directive is present. */

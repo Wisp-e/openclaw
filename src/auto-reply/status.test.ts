@@ -79,7 +79,7 @@ describe("buildStatusMessage", () => {
     expect(normalized).toContain("api-key");
     expect(normalized).toContain("Tokens: 1.2k in / 800 out");
     expect(normalized).toContain("Cost: $0.0020");
-    expect(normalized).toContain("Context: 16k/32k (50%)");
+    expect(normalized).toContain("Used: 16k/32k (50%)");
     expect(normalized).toContain("Compactions: 2");
     expect(normalized).toContain("Session: agent:main:main");
     expect(normalized).toContain("updated 10m ago");
@@ -237,7 +237,7 @@ describe("buildStatusMessage", () => {
 
     const normalized = normalizeTestText(text);
     expect(normalized).toContain("Model:");
-    expect(normalized).toContain("Context:");
+    expect(normalized).toContain("Used:");
     expect(normalized).toContain("Queue: collect");
   });
 
@@ -291,9 +291,29 @@ describe("buildStatusMessage", () => {
     });
 
     const lines = normalizeTestText(text).split("\n");
-    const contextIndex = lines.findIndex((line) => line.includes("Context:"));
+    const contextIndex = lines.findIndex((line) => line.includes("Used:"));
     expect(contextIndex).toBeGreaterThan(-1);
     expect(lines[contextIndex + 1]).toContain("Usage: Claude 80% left (5h)");
+  });
+
+  it("uses input+output when totalTokens wrongly equals context window (128k)", () => {
+    const text = buildStatusMessage({
+      agent: {},
+      sessionEntry: {
+        sessionId: "g1",
+        updatedAt: 0,
+        totalTokens: 128_000,
+        contextTokens: 128_000,
+        inputTokens: 30_000,
+        outputTokens: 7_174,
+      },
+      sessionKey: "agent:main:telegram:group:-1003880004675",
+      sessionScope: "per-sender",
+      queue: { mode: "collect", depth: 0 },
+      modelAuth: "api-key",
+    });
+    const normalized = normalizeTestText(text);
+    expect(normalized).toContain("Used: 37k/128k (29%)");
   });
 
   it("hides cost when not using an API key", () => {
@@ -419,7 +439,7 @@ describe("buildStatusMessage", () => {
           sessionKey: "agent:main:main",
         });
 
-        expect(normalizeTestText(text)).toContain("Context: 1.0k/32k");
+        expect(normalizeTestText(text)).toContain("Used: 1.0k/32k");
       },
       { prefix: "openclaw-status-" },
     );

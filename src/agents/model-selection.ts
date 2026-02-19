@@ -502,6 +502,16 @@ export function resolveThinkingDefault(params: {
   model: string;
   catalog?: ModelCatalogEntry[];
 }): ThinkLevel {
+  // Check per-model overrides first (e.g. { "openrouter/pony-alpha": "medium" }).
+  const overrides = params.cfg.agents?.defaults?.thinkingOverrides;
+  if (overrides) {
+    const fullKey = `${params.provider}/${params.model}`;
+    const override = overrides[fullKey] ?? overrides[params.model] ?? overrides[params.provider];
+    if (override) {
+      return override;
+    }
+  }
+
   const configured = params.cfg.agents?.defaults?.thinkingDefault;
   if (configured) {
     return configured;

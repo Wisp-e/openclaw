@@ -6,10 +6,10 @@ const { ProxyAgent, undiciFetch, proxyAgentSpy, getLastAgent } = vi.hoisted(() =
   class ProxyAgent {
     static lastCreated: ProxyAgent | undefined;
     proxyUrl: string;
-    constructor(proxyUrl: string) {
-      this.proxyUrl = proxyUrl;
+    constructor(opts: string | { uri: string }) {
+      this.proxyUrl = typeof opts === "string" ? opts : opts.uri;
       ProxyAgent.lastCreated = this;
-      proxyAgentSpy(proxyUrl);
+      proxyAgentSpy(opts);
     }
   }
 
@@ -36,7 +36,9 @@ describe("makeProxyFetch", () => {
     const proxyFetch = makeProxyFetch(proxyUrl);
     await proxyFetch("https://api.telegram.org/bot123/getMe");
 
-    expect(proxyAgentSpy).toHaveBeenCalledWith(proxyUrl);
+    expect(proxyAgentSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ uri: proxyUrl, requestTls: { maxCachedSessions: 0 } }),
+    );
     expect(undiciFetch).toHaveBeenCalledWith(
       "https://api.telegram.org/bot123/getMe",
       expect.objectContaining({ dispatcher: getLastAgent() }),

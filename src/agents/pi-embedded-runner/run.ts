@@ -407,9 +407,13 @@ export async function runEmbeddedPiAgent(
           return false;
         }
         let nextIndex = profileIndex + 1;
+        let firstCooldownIndex: number | undefined;
         while (nextIndex < profileCandidates.length) {
           const candidate = profileCandidates[nextIndex];
           if (candidate && isProfileInCooldown(authStore, candidate)) {
+            if (firstCooldownIndex === undefined) {
+              firstCooldownIndex = nextIndex;
+            }
             nextIndex += 1;
             continue;
           }
@@ -424,6 +428,20 @@ export async function runEmbeddedPiAgent(
               throw err;
             }
             nextIndex += 1;
+          }
+        }
+        // All remaining candidates are in cooldown — fall back to the first
+        // cooldown candidate (sorted soonest-expiring by order.ts) rather than
+        // giving up entirely, which would cause permanent lockout.
+        if (firstCooldownIndex !== undefined) {
+          try {
+            await applyApiKeyInfo(profileCandidates[firstCooldownIndex]);
+            profileIndex = firstCooldownIndex;
+            thinkLevel = initialThinkLevel;
+            attemptedThinking.clear();
+            return true;
+          } catch {
+            // Fall through to return false
           }
         }
         return false;
@@ -444,7 +462,11 @@ export async function runEmbeddedPiAgent(
           break;
         }
         if (profileIndex >= profileCandidates.length) {
-          throwAuthProfileFailover({ allInCooldown: true });
+          // All profiles are in cooldown — fall back to the first candidate
+          // (sorted soonest-expiring by order.ts) instead of throwing. This
+          // prevents permanent lockout when all providers enter cooldown.
+          profileIndex = 0;
+          await applyApiKeyInfo(profileCandidates[0]);
         }
       } catch (err) {
         if (err instanceof FailoverError) {

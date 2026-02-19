@@ -228,11 +228,18 @@ function resolveFallbackCandidates(params: {
     if (!resolved) {
       continue;
     }
+    // Provider isolation: when using global defaults (no explicit override),
+    // skip fallback candidates from a different provider than the primary.
+    if (params.fallbacksOverride === undefined && resolved.ref.provider !== provider) {
+      continue;
+    }
     addCandidate(resolved.ref, true);
   }
 
   if (params.fallbacksOverride === undefined && primary?.provider && primary.model) {
-    addCandidate({ provider: primary.provider, model: primary.model }, false);
+    if (primary.provider === provider) {
+      addCandidate({ provider: primary.provider, model: primary.model }, false);
+    }
   }
 
   return candidates;
@@ -298,9 +305,6 @@ export async function runWithModelFallback<T>(params: {
     model: params.model,
     fallbacksOverride: params.fallbacksOverride,
   });
-  const authStore = params.cfg
-    ? ensureAuthProfileStore(params.agentDir, { allowKeychainPrompt: false })
-    : null;
   const attempts: FallbackAttempt[] = [];
   let lastError: unknown;
 

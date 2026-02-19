@@ -1,7 +1,11 @@
 import { ProxyAgent, fetch as undiciFetch } from "undici";
 
 export function makeProxyFetch(proxyUrl: string): typeof fetch {
-  const agent = new ProxyAgent(proxyUrl);
+  const agent = new ProxyAgent({
+    uri: proxyUrl,
+    // Disable TLS session caching to avoid Node.js _tls_wrap crash (see ssrf.ts).
+    requestTls: { maxCachedSessions: 0 },
+  });
   // undici's fetch is runtime-compatible with global fetch but the types diverge
   // on stream/body internals. Single cast at the boundary keeps the rest type-safe.
   const fetcher = ((input: RequestInfo | URL, init?: RequestInit) =>

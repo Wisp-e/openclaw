@@ -182,6 +182,19 @@ export function calculateAuthProfileCooldownMs(errorCount: number): number {
   );
 }
 
+/**
+ * Gentler cooldown progression for timeout failures: 30s → 60s → 120s (cap).
+ * Timeouts are often transient (e.g. Antigravity hanging on 429) and should
+ * not escalate as aggressively as hard rate-limit or auth errors.
+ */
+export function calculateAuthProfileTimeoutCooldownMs(timeoutCount: number): number {
+  const normalized = Math.max(1, timeoutCount);
+  return Math.min(
+    120_000, // 2 minute cap
+    30_000 * 2 ** Math.min(normalized - 1, 2),
+  );
+}
+
 type ResolvedAuthCooldownConfig = {
   billingBackoffMs: number;
   billingMaxMs: number;
@@ -289,6 +302,10 @@ function computeNextProfileUsageStats(params: {
     });
     updatedStats.disabledUntil = params.now + backoffMs;
     updatedStats.disabledReason = "billing";
+  } else if (params.reason === "timeout") {
+    const timeoutCount = failureCounts.timeout ?? 1;
+    const backoffMs = calculateAuthProfileTimeoutCooldownMs(timeoutCount);
+    updatedStats.cooldownUntil = params.now + backoffMs;
   } else {
     const backoffMs = calculateAuthProfileCooldownMs(nextErrorCount);
     updatedStats.cooldownUntil = params.now + backoffMs;
@@ -418,4 +435,68 @@ export async function clearAuthProfileCooldown(params: {
     cooldownUntil: undefined,
   };
   saveAuthProfileStore(store, agentDir);
+}
+
+/**
+ * Clear cooldowns for all profiles. Resets cooldownUntil, errorCount, and
+ * failureCounts but preserves disabledUntil/disabledReason (billing state).
+ * Intended for manual recovery via /new, /reset, or /restart.
+ */
+export async function clearAllAuthProfileCooldowns(params: {
+  store: AuthProfileStore;
+  agentDir?: string;
+}): Promise<void> {
+  const { store, agentDir } = params;
+  const updated = await updateAuthProfileStoreWithLock({
+    agentDir,
+    updater: (freshStore) => {
+      if (!freshStore.usageStats) {
+        return false;
+      }
+      let changed = false;
+      for (const profileId of Object.keys(freshStore.usageStats)) {
+        const stats = freshStore.usageStats[profileId];
+        if (!stats) {
+          continue;
+        }
+        if (stats.cooldownUntil || stats.errorCount || stats.failureCounts) {
+          freshStore.usageStats[profileId] = {
+            ...stats,
+            cooldownUntil: undefined,
+            errorCount: 0,
+            failureCounts: undefined,
+          };
+          changed = true;
+        }
+      }
+      return changed;
+    },
+  });
+  if (updated) {
+    store.usageStats = updated.usageStats;
+    return;
+  }
+
+  if (!store.usageStats) {
+    return;
+  }
+  let changed = false;
+  for (const profileId of Object.keys(store.usageStats)) {
+    const stats = store.usageStats[profileId];
+    if (!stats) {
+      continue;
+    }
+    if (stats.cooldownUntil || stats.errorCount || stats.failureCounts) {
+      store.usageStats[profileId] = {
+        ...stats,
+        cooldownUntil: undefined,
+        errorCount: 0,
+        failureCounts: undefined,
+      };
+      changed = true;
+    }
+  }
+  if (changed) {
+    saveAuthProfileStore(store, agentDir);
+  }
 }

@@ -4,6 +4,8 @@ import type {
   CommandHandlerResult,
   HandleCommandsParams,
 } from "./commands-types.js";
+import { resolveOpenClawAgentDir } from "../../agents/agent-paths.js";
+import { clearAllAuthProfileCooldowns, ensureAuthProfileStore } from "../../agents/auth-profiles.js";
 import { logVerbose } from "../../globals.js";
 import { createInternalHookEvent, triggerInternalHook } from "../../hooks/internal-hooks.js";
 import { getGlobalHookRunner } from "../../plugins/hook-runner-global.js";
@@ -86,6 +88,15 @@ export async function handleCommands(params: HandleCommandsParams): Promise<Comm
       cfg: params.cfg, // Pass config for LLM slug generation
     });
     await triggerInternalHook(hookEvent);
+
+    // Clear all auth profile cooldowns so the new session starts fresh
+    try {
+      const agentDir = resolveOpenClawAgentDir();
+      const authStore = ensureAuthProfileStore(agentDir, { allowKeychainPrompt: false });
+      await clearAllAuthProfileCooldowns({ store: authStore, agentDir });
+    } catch {
+      // Best-effort; don't block the reset if cooldown clearing fails
+    }
 
     // Send hook messages immediately if present
     if (hookEvent.messages.length > 0) {

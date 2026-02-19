@@ -1,5 +1,7 @@
 import type { SessionEntry } from "../../config/sessions.js";
 import type { CommandHandler } from "./commands-types.js";
+import { resolveOpenClawAgentDir } from "../../agents/agent-paths.js";
+import { clearAllAuthProfileCooldowns, ensureAuthProfileStore } from "../../agents/auth-profiles.js";
 import { abortEmbeddedPiRun } from "../../agents/pi-embedded.js";
 import { updateSessionStore } from "../../config/sessions.js";
 import { logVerbose } from "../../globals.js";
@@ -264,6 +266,15 @@ export const handleRestartCommand: CommandHandler = async (params, allowTextComm
       },
     };
   }
+  // Clear all auth profile cooldowns so the restart begins with a clean slate
+  try {
+    const agentDir = resolveOpenClawAgentDir();
+    const authStore = ensureAuthProfileStore(agentDir, { allowKeychainPrompt: false });
+    await clearAllAuthProfileCooldowns({ store: authStore, agentDir });
+  } catch {
+    // Best-effort; don't block the restart if cooldown clearing fails
+  }
+
   const hasSigusr1Listener = process.listenerCount("SIGUSR1") > 0;
   if (hasSigusr1Listener) {
     scheduleGatewaySigusr1Restart({ reason: "/restart" });

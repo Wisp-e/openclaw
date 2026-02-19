@@ -25,13 +25,13 @@ describe("ensurePiCompactionReserveTokens", () => {
 
   it("does not override when already above floor", () => {
     const settingsManager = {
-      getCompactionReserveTokens: () => 32_000,
+      getCompactionReserveTokens: () => 40_000,
       applyOverrides: vi.fn(),
     };
 
     const result = ensurePiCompactionReserveTokens({ settingsManager });
 
-    expect(result).toEqual({ didOverride: false, reserveTokens: 32_000 });
+    expect(result).toEqual({ didOverride: false, reserveTokens: 40_000 });
     expect(settingsManager.applyOverrides).not.toHaveBeenCalled();
   });
 });

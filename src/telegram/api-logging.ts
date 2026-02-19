@@ -5,6 +5,12 @@ import { createSubsystemLogger } from "../logging/subsystem.js";
 
 export type TelegramApiLogger = (message: string) => void;
 
+/** True when Telegram returns 400 REACTION_INVALID (e.g. emoji not allowed in chat). */
+export function isTelegramReactionInvalidError(err: unknown): boolean {
+  const msg = formatErrorMessage(err);
+  return msg.includes("REACTION_INVALID");
+}
+
 type TelegramApiLoggingParams<T> = {
   operation: string;
   fn: () => Promise<T>;

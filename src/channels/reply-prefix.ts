@@ -1,6 +1,7 @@
 import type { GetReplyOptions } from "../auto-reply/types.js";
 import type { OpenClawConfig } from "../config/config.js";
 import { resolveEffectiveMessagesConfig, resolveIdentityName } from "../agents/identity.js";
+import { resolveDefaultModelForAgent } from "../agents/model-selection.js";
 import {
   extractShortModelName,
   type ResponsePrefixContext,
@@ -27,8 +28,16 @@ export function createReplyPrefixContext(params: {
   accountId?: string;
 }): ReplyPrefixContextBundle {
   const { cfg, agentId } = params;
+
+  // Pre-populate from config default model so command-only replies (e.g. /status, /new)
+  // resolve {model} and {thinkingLevel} instead of showing them as literal text.
+  // When the agent actually runs, onModelSelected() overwrites with the real model.
+  const defaultModel = resolveDefaultModelForAgent({ cfg, agentId });
   const prefixContext: ResponsePrefixContext = {
     identityName: resolveIdentityName(cfg, agentId),
+    model: extractShortModelName(defaultModel.model),
+    modelFull: `${defaultModel.provider}/${defaultModel.model}`,
+    provider: defaultModel.provider,
   };
 
   const onModelSelected = (ctx: ModelSelectionContext) => {

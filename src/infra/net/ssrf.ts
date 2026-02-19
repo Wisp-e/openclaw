@@ -444,6 +444,10 @@ export function createPinnedDispatcher(pinned: PinnedHostname): Dispatcher {
   return new Agent({
     connect: {
       lookup: pinned.lookup,
+      // Disable TLS session caching to avoid a Node.js race condition where
+      // TLSSocket.setSession() is called after the handle is destroyed, causing
+      // an uncaught TypeError that crashes the process (node:_tls_wrap).
+      maxCachedSessions: 0,
     },
   });
 }

@@ -351,6 +351,18 @@ export function buildStatusMessage(args: StatusArgs): string {
   let outputTokens = entry?.outputTokens;
   let totalTokens = entry?.totalTokens ?? (entry?.inputTokens ?? 0) + (entry?.outputTokens ?? 0);
 
+  // If store wrongly has totalTokens === contextTokens (window size), prefer input+output when smaller
+  const inputOutputSum = (entry?.inputTokens ?? 0) + (entry?.outputTokens ?? 0);
+  if (
+    typeof totalTokens === "number" &&
+    typeof contextTokens === "number" &&
+    totalTokens === contextTokens &&
+    inputOutputSum > 0 &&
+    inputOutputSum < totalTokens
+  ) {
+    totalTokens = inputOutputSum;
+  }
+
   // Prefer prompt-size tokens from the session transcript when it looks larger
   // (cached prompt tokens are often missing from agent meta/store).
   if (args.includeTranscriptUsage) {
@@ -410,7 +422,7 @@ export function buildStatusMessage(args: StatusArgs): string {
     : undefined;
 
   const contextLine = [
-    `Context: ${formatTokens(totalTokens, contextTokens ?? null)}`,
+    `Used: ${formatTokens(totalTokens, contextTokens ?? null)}`,
     `🧹 Compactions: ${entry?.compactionCount ?? 0}`,
   ]
     .filter(Boolean)
