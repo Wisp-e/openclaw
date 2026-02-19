@@ -30,7 +30,7 @@ pnpm test:docker:live-gateway         # Docker live gateway tests
 pnpm test:docker:onboard              # Docker onboarding E2E
 
 pnpm dev                    # Run CLI from source (tsx)
-pnpm openclaw ...           # Run CLI via bun (preferred for dev)
+pnpm openclaw ...           # Run CLI (pnpm script uses bun internally; preferred for dev)
 pnpm gateway:dev            # Gateway in dev mode (channels skipped)
 pnpm gateway:watch          # Gateway watch mode (auto-restart on changes)
 pnpm ui:dev                 # Web UI dev server
